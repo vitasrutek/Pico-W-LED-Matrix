@@ -200,9 +200,10 @@ try:
         formatovany_cas = "{:02d}:{:02d}".format(hodiny, minuty)
 
         # NTP time read every hour
-        if minuty == 0:
-            ntptime.settime()
-            print("NTP čas aktualizován")
+        #if minuty == 0:
+        #    ntptime.settime()
+        #    print("NTP čas aktualizován")
+        ### Commented for script stopping
 
         draw_time(hodiny, minuty)   # Turn on LED for time
         utime.sleep(0.5)    # For semicol blinking
