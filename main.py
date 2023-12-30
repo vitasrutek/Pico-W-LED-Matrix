@@ -5,8 +5,8 @@ import network
 import ntptime
 from machine import RTC
 
-ssid = 'SSID'
-password = 'PASSWORD'
+ssid = 'Sputnik_1'
+password = 'GEjae2wcfbmb3-Vita'
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
@@ -135,7 +135,7 @@ def draw_digit(digit, start_col, color=(255, 255, 255)):
         ],
         '9': [
             "######", 
-            "##  ##", 
+            "######", 
             "##  ##", 
             "######", 
             "######", 
@@ -180,11 +180,11 @@ def draw_time(hour, minute):
     draw_digit(hour_str[1], 8, color=(255, 0, 0))  # Set for second digit
 
     # Semicol
-    draw_digit("X", 15, color=(255, 255, 255))  # Set for semicol
+    draw_digit("X", 15, color=(0, 255, 255))  # Set for semicol
 
     # Showing minutes
-    draw_digit(minute_str[0], 18, color=(255, 255, 0))  # Set for third digit
-    draw_digit(minute_str[1], 26, color=(255, 0, 255))  # Set for fourth digit
+    draw_digit(minute_str[0], 18, color=(255, 0, 0))  # Set for third digit
+    draw_digit(minute_str[1], 26, color=(255, 0, 0))  # Set for fourth digit
 
 try:
     while True:
@@ -197,13 +197,15 @@ try:
         if not letni_cas:
             hodiny += 1
 
+        if hodiny == 24:
+            hodiny = 00
+
         formatovany_cas = "{:02d}:{:02d}".format(hodiny, minuty)
 
         # NTP time read every hour
         #if minuty == 0:
         #    ntptime.settime()
         #    print("NTP čas aktualizován")
-        ### Commented for script stopping
 
         draw_time(hodiny, minuty)   # Turn on LED for time
         utime.sleep(0.5)    # For semicol blinking
