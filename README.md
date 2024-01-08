@@ -10,6 +10,7 @@ PIN GROUND (38):  GROUND
 Simple script with Wifi connected Pico W device to check actual time from NTP server. Then it is showing on LED WS2812b matrix (cheap AliExpress).
 Digital numbers can be easily changed with better font style, just ensure that numbers are 6 points columns and 8 point rows (6x8) for these settings.
 
-### TODO
+### Update 01/2024
+Light sensor (photo resistor) support added.
+Connected on 32 (GP27) and 33 (GND) PIN. With more ambient light the brightness is stronger, in the dark is weaker. 
 
-Light sensor
