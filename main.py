@@ -5,6 +5,7 @@ import network
 import ntptime
 from machine import RTC
 
+
 ssid = 'Sputnik_1'
 password = 'GEjae2wcfbmb3-Vita'
 
@@ -28,6 +29,7 @@ ws_pin = 0
 num_rows = 8
 num_cols = 32
 BRIGHTNESS = 0.004  # Brightness (0.004 - 1.0)
+ldr = machine.ADC(27)   # For Light sensor
 
 neoMatrix = neopixel.NeoPixel(Pin(ws_pin), num_rows * num_cols)
 
@@ -135,7 +137,7 @@ def draw_digit(digit, start_col, color=(255, 255, 255)):
         ],
         '9': [
             "######", 
-            "######", 
+            "##  ##", 
             "##  ##", 
             "######", 
             "######", 
@@ -152,7 +154,27 @@ def draw_digit(digit, start_col, color=(255, 255, 255)):
             "##", 
             "##", 
             "  "
+        ],
+        'Hello': [
+            "#   #                   #   ##  ",
+            "#   # #### #  #   ##    ##    # ",
+            "#   # #    #  #  #  #   #      #",
+            "##### ###  #  #  #  #          #",
+            "#   # #    #  #  #  #   #      #",
+            "#   # #    #  #  #  #   ##    # ",
+            "#   # #### ## ##  ##    #   ##  ",
+        ],
+        ':)': [
+            "    #######    ",
+            "  ##       ##  ",
+            " ##  ## ##  ## ",
+            "#             #",
+            "#    #   #    #",
+            " ##   ###   ## ",
+            "  ##       ##  ",
+            "    #######    ",
         ]
+                                                
     }
 
     # Set for matrix
@@ -186,8 +208,23 @@ def draw_time(hour, minute):
     draw_digit(minute_str[0], 18, color=(255, 0, 0))  # Set for third digit
     draw_digit(minute_str[1], 26, color=(255, 0, 0))  # Set for fourth digit
 
+draw_digit("Hello", 0, color=(0, 255, 255))
+utime.sleep (2)
+draw_digit("Hello", 0, color=(0, 0, 0))
+#draw_digit(":)", 0, color=(255, 0, 0))
+#utime.sleep(2)
+
 try:
     while True:
+        ldr_value = ldr.read_u16()  # Read light sensor value
+        if ldr_value > 1500:
+            BRIGHTNESS = 0.004
+        elif 1000 < ldr_value < 1500:
+            BRIGHTNESS = 0.01
+        elif ldr_value < 1000:
+            BRIGHTNESS = 0.1
+        print('světlo je ', ldr_value, ', BRIGHTNESS je ', BRIGHTNESS)
+
         rok, mesic, den, _, hodiny, minuty, _, _ = rtc.datetime()   # Get actual time
 
         # Summer / winter time check
@@ -196,9 +233,6 @@ try:
         # PAdd 1 hour in winter time
         if not letni_cas:
             hodiny += 1
-
-        if hodiny == 24:
-            hodiny = 00
 
         formatovany_cas = "{:02d}:{:02d}".format(hodiny, minuty)
 
@@ -209,7 +243,7 @@ try:
 
         draw_time(hodiny, minuty)   # Turn on LED for time
         utime.sleep(0.5)    # For semicol blinking
-        draw_digit("X", 15, color=(0, 0, 0))
+        draw_digit("X", 15, color=(255, 0, 0))
         utime.sleep(0.5)
 
 except KeyboardInterrupt:       # Turn LED off after script interupt
