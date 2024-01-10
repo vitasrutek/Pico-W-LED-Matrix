@@ -6,8 +6,8 @@ import ntptime
 from machine import RTC
 
 
-ssid = 'Sputnik_1'
-password = 'GEjae2wcfbmb3-Vita'
+ssid = xy
+password = xy
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
