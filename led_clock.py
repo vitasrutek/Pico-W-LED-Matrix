@@ -3,6 +3,7 @@ from machine import Pin
 import utime
 import network
 import ntptime
+import ustruct
 from machine import RTC
 from secrets import secrets
 
@@ -29,7 +30,7 @@ ws_pin = 0
 num_rows = 8
 num_cols = 32
 BRIGHTNESS = 0.004  # Brightness (0.004 - 1.0)
-ldr = machine.ADC(27)   # For Light sensor
+ldr = machine.ADC(26)   # For Light sensor
 
 neoMatrix = neopixel.NeoPixel(Pin(ws_pin), num_rows * num_cols)
 
@@ -192,6 +193,17 @@ def draw_digit(digit, start_col, color=(255, 255, 255)):
 
     neoMatrix.write()
 
+def letni_cas():
+    # Získej aktuální čas pomocí NTP
+    ntptime.settime()
+    # Získání aktuálního času
+    year, month, day, hour, minute, second, _, _ = utime.localtime()
+    # Definuj začátek a konec letního času
+    dst_start = utime.mktime((year, 3, (31 - (5 * year // 4 + 4) % 7), 1, 0, 0, 0, 0, 0))
+    dst_end = utime.mktime((year, 10, (31 - (5 * year // 4 + 1) % 7), 1, 0, 0, 0, 0, 0))
+    # Zjisti, zda je aktuální čas v rozmezí začátku a konce letního času
+    return dst_start < utime.mktime((year, month, day, hour, minute, second, 0, 0, 0)) < dst_end
+
 def draw_time(hour, minute):
     # Time to hours and minutes
     hour_str = str(hour) if hour >= 10 else "0" + str(hour)
@@ -217,23 +229,25 @@ draw_digit("Hello", 0, color=(0, 0, 0))
 try:
     while True:
         ldr_value = ldr.read_u16()  # Read light sensor value
-        if ldr_value > 1500:
+        if ldr_value > 59000:
             BRIGHTNESS = 0.004
-        elif 1000 < ldr_value < 1500:
+        elif 50000 < ldr_value < 59000:
             BRIGHTNESS = 0.01
-        elif ldr_value < 1000:
+        elif ldr_value < 50000:
             BRIGHTNESS = 0.1
         print('světlo je ', ldr_value, ', BRIGHTNESS je ', BRIGHTNESS)
 
         rok, mesic, den, _, hodiny, minuty, _, _ = rtc.datetime()   # Get actual time
 
-        # Summer / winter time check
-        letni_cas = 3 <= mesic <= 10
-
         # PAdd 1 hour in winter time
         if not letni_cas:
             hodiny += 1
 
+        if is_daylight_saving_time():
+            hodiny += 0
+        else:
+            hodiny += 1
+        
         formatovany_cas = "{:02d}:{:02d}".format(hodiny, minuty)
 
         # NTP time read every hour
