@@ -235,22 +235,17 @@ try:
             BRIGHTNESS = 0.01
         elif ldr_value < 50000:
             BRIGHTNESS = 0.1
-        print('světlo je ', ldr_value, ', BRIGHTNESS je ', BRIGHTNESS)
+        #print('světlo je ', ldr_value, ', BRIGHTNESS je ', BRIGHTNESS)
 
         rok, mesic, den, _, hodiny, minuty, _, _ = rtc.datetime()   # Get actual time
 
         # Add 1 hour in winter time
         if letni_cas():
-            hodiny -= 1
-        else:
             hodiny += 0
+        else:
+            hodiny += 1
         
         formatovany_cas = "{:02d}:{:02d}".format(hodiny, minuty)
-
-        # NTP time read every hour
-        #if minuty == 0:
-        #    ntptime.settime()
-        #    print("NTP čas aktualizován")
 
         draw_time(hodiny, minuty)   # Turn on LED for time
         utime.sleep(0.5)    # For semicol blinking
