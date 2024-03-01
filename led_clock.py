@@ -239,14 +239,11 @@ try:
 
         rok, mesic, den, _, hodiny, minuty, _, _ = rtc.datetime()   # Get actual time
 
-        # PAdd 1 hour in winter time
-        if not letni_cas:
-            hodiny += 1
-
-        if is_daylight_saving_time():
-            hodiny += 0
+        # Add 1 hour in winter time
+        if letni_cas():
+            hodiny -= 1
         else:
-            hodiny += 1
+            hodiny += 0
         
         formatovany_cas = "{:02d}:{:02d}".format(hodiny, minuty)
 
