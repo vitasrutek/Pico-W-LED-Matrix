@@ -3,29 +3,77 @@ from machine import Pin
 import utime
 import network
 import ntptime
-import ustruct
 from machine import RTC
-from secrets import secrets
+from secrets import wifi_networks
 
-ssid = secrets['ssid']
-password = secrets['password']
+# Funkce pro připojení k WiFi
+def connect_wifi():
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
 
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-wlan.connect(ssid, password)
+    for network_info in wifi_networks:
+        ssid = network_info['ssid']
+        password = network_info['password']
+        wlan.connect(ssid, password)
+        
+        print(f"Připojuji se k WiFi síti: {ssid}")
+        
+        # Čekání na připojení
+        timeout = 10  # Časový limit pro připojení
+        while not wlan.isconnected() and timeout > 0:
+            timeout -= 1
+            utime.sleep(1)
+        
+        if wlan.isconnected():
+            print(f"Připojeno k WiFi: {ssid}")
+            return wlan
+        else:
+            print(f"Nepodařilo se připojit k WiFi: {ssid}")
+    
+    print("Nepodařilo se připojit k žádné WiFi.")
+    return None
 
-while not wlan.isconnected():
-    pass
+# Při spuštění se pokusíme připojit k WiFi
+wlan = connect_wifi()
 
-print("Připojeno k WiFi!")
+if wlan is None:
+    print("Chyba: Nejsme připojeni k žádné WiFi. Program bude pokračovat, ale nebude možné získat čas z NTP.")
+else:
+    print("WiFi připojení bylo úspěšné!")
+
+# Funkce pro zjištění, jestli je letní čas
+def letni_cas():
+    year, month, day, hour, minute, second, _, _ = utime.localtime()
+    # Definuj začátek a konec letního času
+    dst_start = utime.mktime((year, 3, (31 - (5 * year // 4 + 4) % 7), 1, 0, 0, 0, 0, 0))
+    dst_end = utime.mktime((year, 10, (31 - (5 * year // 4 + 1) % 7), 1, 0, 0, 0, 0, 0))
+    # Zjisti, zda je aktuální čas v rozmezí začátku a konce letního času
+    return dst_start < utime.mktime((year, month, day, hour, minute, second, 0, 0, 0)) < dst_end
+
+# Funkce pro získání aktuálního času s ohledem na letní a zimní čas
+def get_time():
+    # Získání aktuálního času
+    year, month, day, hour, minute, second, _, _ = utime.localtime()
+    
+    # Oprava pro letní/zimní čas (přidání hodiny v zimním čase)
+    if letni_cas():
+        # Letní čas (neprovádí žádnou změnu)
+        pass
+    else:
+        # Zimní čas (přičteme 1 hodinu)
+        hour += 1
+
+    return hour, minute
+
 
 # RTC setup
 rtc = RTC()
 
-# Get time from NTP
-ntptime.settime()
+# Get time from NTP (pokud je připojeno k WiFi)
+if wlan and wlan.isconnected():
+    ntptime.settime()
 
-# WS2812b LED matrix settings
+# Zbytek skriptu pro řízení LED atd.
 ws_pin = 0
 num_rows = 8
 num_cols = 32
@@ -33,6 +81,7 @@ BRIGHTNESS = 0.004  # Brightness (0.004 - 1.0)
 ldr = machine.ADC(26)   # For Light sensor
 
 neoMatrix = neopixel.NeoPixel(Pin(ws_pin), num_rows * num_cols)
+
 
 def set_brightness(color):
     r, g, b = color
@@ -44,7 +93,6 @@ def set_brightness(color):
 def draw_digit(digit, start_col, color=(255, 255, 255)):
     color = set_brightness(color)
 
-    # Numbers definition
     digits = {
         '0': [
             "######", 
@@ -156,29 +204,10 @@ def draw_digit(digit, start_col, color=(255, 255, 255)):
             "##", 
             "  "
         ],
-        'Hello': [
-            "#   #                   #   ##  ",
-            "#   # #### #  #   ##    ##    # ",
-            "#   # #    #  #  #  #   #      #",
-            "##### ###  #  #  #  #          #",
-            "#   # #    #  #  #  #   #      #",
-            "#   # #    #  #  #  #   ##    # ",
-            "#   # #### ## ##  ##    #   ##  ",
-        ],
-        ':)': [
-            "    #######    ",
-            "  ##       ##  ",
-            " ##  ## ##  ## ",
-            "#             #",
-            "#    #   #    #",
-            " ##   ###   ## ",
-            "  ##       ##  ",
-            "    #######    ",
-        ]
-                                                
-    }
 
-    # Set for matrix
+    }
+    
+
     for row in range(len(digits[digit])):
         for col in range(len(digits[digit][0])):
             matrix_index = row * num_cols + (col + start_col) % num_cols
@@ -193,38 +222,20 @@ def draw_digit(digit, start_col, color=(255, 255, 255)):
 
     neoMatrix.write()
 
-def letni_cas():
-    # Získej aktuální čas pomocí NTP
-    ntptime.settime()
-    # Získání aktuálního času
-    year, month, day, hour, minute, second, _, _ = utime.localtime()
-    # Definuj začátek a konec letního času
-    dst_start = utime.mktime((year, 3, (31 - (5 * year // 4 + 4) % 7), 1, 0, 0, 0, 0, 0))
-    dst_end = utime.mktime((year, 10, (31 - (5 * year // 4 + 1) % 7), 1, 0, 0, 0, 0, 0))
-    # Zjisti, zda je aktuální čas v rozmezí začátku a konce letního času
-    return dst_start < utime.mktime((year, month, day, hour, minute, second, 0, 0, 0)) < dst_end
-
 def draw_time(hour, minute):
-    # Time to hours and minutes
     hour_str = str(hour) if hour >= 10 else "0" + str(hour)
     minute_str = str(minute) if minute >= 10 else "0" + str(minute)
 
-    # Showing hours
-    draw_digit(hour_str[0], 0, color=(255, 0, 0))  # Set for first digit
-    draw_digit(hour_str[1], 8, color=(255, 0, 0))  # Set for second digit
+    draw_digit(hour_str[0], 0, color=(255, 0, 0))
+    draw_digit(hour_str[1], 8, color=(255, 0, 0))
 
-    # Semicol
-    draw_digit("X", 15, color=(0, 255, 255))  # Set for semicol
+    draw_digit("X", 15, color=(0, 255, 255))
 
-    # Showing minutes
-    draw_digit(minute_str[0], 18, color=(255, 0, 0))  # Set for third digit
-    draw_digit(minute_str[1], 26, color=(255, 0, 0))  # Set for fourth digit
+    draw_digit(minute_str[0], 18, color=(255, 0, 0))
+    draw_digit(minute_str[1], 26, color=(255, 0, 0))
 
-draw_digit("Hello", 0, color=(0, 255, 255))
-utime.sleep (2)
-draw_digit("Hello", 0, color=(0, 0, 0))
-#draw_digit(":)", 0, color=(255, 0, 0))
-#utime.sleep(2)
+# Další funkce jako letni_cas(), a samotný kód pro zobrazení času nebo jiných informací
+# ...
 
 try:
     while True:
@@ -235,23 +246,25 @@ try:
             BRIGHTNESS = 0.01
         elif ldr_value < 50000:
             BRIGHTNESS = 0.1
-        #print('světlo je ', ldr_value, ', BRIGHTNESS je ', BRIGHTNESS)
-
-        rok, mesic, den, _, hodiny, minuty, _, _ = rtc.datetime()   # Get actual time
-
-        # Add 1 hour in winter time
-        if letni_cas():
-            hodiny += 0
+            
+        # Připojení a aktualizace času
+        if wlan:
+            hodiny, minuty = get_time()
+            formatovany_cas = "{:02d}:{:02d}".format(hodiny, minuty)
+            draw_time(hodiny, minuty)  # Zobrazení času
         else:
-            hodiny += 1
-        
-        formatovany_cas = "{:02d}:{:02d}".format(hodiny, minuty)
+            # Když není WiFi připojeno, ukáže "No WiFi"
+            draw_digit("0", 0, color=(255, 0, 0))
+            draw_digit("0", 8, color=(255, 0, 0))
 
-        draw_time(hodiny, minuty)   # Turn on LED for time
-        utime.sleep(0.5)    # For semicol blinking
-        draw_digit("X", 15, color=(255, 0, 0))
-        utime.sleep(0.5)
+            draw_digit("X", 15, color=(0, 255, 255))
 
-except KeyboardInterrupt:       # Turn LED off after script interupt
+            draw_digit("0", 18, color=(255, 0, 0))
+            draw_digit("0", 26, color=(255, 0, 0))
+
+        utime.sleep(1)
+
+except KeyboardInterrupt:
     neoMatrix.fill((0, 0, 0))
     neoMatrix.write()
+
