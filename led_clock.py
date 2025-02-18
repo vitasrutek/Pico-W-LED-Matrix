@@ -251,7 +251,11 @@ try:
         if wlan:
             hodiny, minuty = get_time()
             formatovany_cas = "{:02d}:{:02d}".format(hodiny, minuty)
-            draw_time(hodiny, minuty)  # Zobrazení času
+
+            draw_time(hodiny, minuty)   # Turn on LED for time
+            utime.sleep(0.5)    # For semicol blinking
+            draw_digit("X", 15, color=(255, 0, 0))
+            #utime.sleep(0.1)
         else:
             # Když není WiFi připojeno, ukáže "No WiFi"
             draw_digit("0", 0, color=(255, 0, 0))
@@ -262,7 +266,7 @@ try:
             draw_digit("0", 18, color=(255, 0, 0))
             draw_digit("0", 26, color=(255, 0, 0))
 
-        utime.sleep(1)
+        utime.sleep(0.5)
 
 except KeyboardInterrupt:
     neoMatrix.fill((0, 0, 0))
